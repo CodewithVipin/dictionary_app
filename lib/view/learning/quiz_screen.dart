@@ -159,183 +159,185 @@ class _QuizScreenState extends State<QuizScreen> {
   Widget _buildQuizView(ThemeData theme) {
     final q = questions[currentQuestionIndex];
 
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            LinearProgressIndicator(
-              value: (currentQuestionIndex + 1) / questions.length,
-              backgroundColor: theme.primaryColor.withValues(alpha: 0.1),
-              valueColor: AlwaysStoppedAnimation<Color>(theme.primaryColor),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          LinearProgressIndicator(
+            value: (currentQuestionIndex + 1) / questions.length,
+            backgroundColor: theme.primaryColor.withValues(alpha: 0.1),
+            valueColor: AlwaysStoppedAnimation<Color>(theme.primaryColor),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            "Question ${currentQuestionIndex + 1} of ${questions.length}",
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: Colors.grey,
+              fontSize: 12,
             ),
-            const SizedBox(height: 20),
-            Text(
-              "Question ${currentQuestionIndex + 1} of ${questions.length}",
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            "Choose the correct meaning for:",
+            textAlign: TextAlign.center,
+            style: theme.textTheme.titleMedium?.copyWith(fontSize: 14),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            q.word,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: theme.primaryColor,
             ),
-            const SizedBox(height: 30),
-            Text(
-              "Choose the correct meaning for:",
-              textAlign: TextAlign.center,
-              style: theme.textTheme.titleMedium,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              q.word,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.headlineLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.primaryColor,
-              ),
-            ),
-            const SizedBox(height: 30),
-            ...q.options.map((option) {
-              Color? tileColor;
-              bool isDisabled = selectedOption != null;
+          ),
+          const SizedBox(height: 20),
+          ...q.options.map((option) {
+            Color? tileColor;
+            bool isDisabled = selectedOption != null;
 
-              if (isDisabled) {
-                if (option == q.correctAnswer) {
-                  tileColor = Colors.green.shade100;
-                } else if (option == selectedOption && !isCorrect!) {
-                  tileColor = Colors.red.shade100;
-                }
+            if (isDisabled) {
+              if (option == q.correctAnswer) {
+                tileColor = Colors.green.shade100;
+              } else if (option == selectedOption && !isCorrect!) {
+                tileColor = Colors.red.shade100;
               }
+            }
 
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Material(
-                  color: tileColor ?? theme.cardColor,
-                  borderRadius: BorderRadius.circular(12),
-                  elevation: isDisabled ? 0 : 2,
-                  child: InkWell(
-                    onTap: isDisabled ? null : () => _submitAnswer(option),
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 16,
-                        horizontal: 20,
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              option,
-                              style: TextStyle(
-                                fontSize: 16,
-                                color:
-                                    isDisabled &&
-                                        option != q.correctAnswer &&
-                                        option != selectedOption
-                                    ? Colors.grey
-                                    : null,
-                              ),
-                            ),
-                          ),
-                          if (isDisabled)
-                            Icon(
-                              option == q.correctAnswer
-                                  ? Icons.check_circle
-                                  : (option == selectedOption
-                                        ? Icons.cancel
-                                        : null),
-                              color: option == q.correctAnswer
-                                  ? Colors.green
-                                  : Colors.red,
-                            ),
-                        ],
-                      ),
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Material(
+                color: tileColor ?? theme.cardColor,
+                borderRadius: BorderRadius.circular(10),
+                elevation: isDisabled ? 0 : 1,
+                child: InkWell(
+                  onTap: isDisabled ? null : () => _submitAnswer(option),
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 16,
                     ),
-                  ),
-                ),
-              );
-            }),
-            const SizedBox(height: 20),
-            if (selectedOption != null) ...[
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: theme.primaryColor.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: theme.primaryColor.withValues(alpha: 0.1),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+                    child: Row(
                       children: [
-                        const Icon(
-                          Icons.info_outline,
-                          size: 20,
-                          color: Colors.blue,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          "Word Details",
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
+                        Expanded(
+                          child: Text(
+                            option,
+                            style: TextStyle(
+                              fontSize: 15,
+                              color:
+                                  isDisabled &&
+                                      option != q.correctAnswer &&
+                                      option != selectedOption
+                                  ? Colors.grey
+                                  : null,
+                            ),
                           ),
                         ),
+                        if (isDisabled)
+                          Icon(
+                            option == q.correctAnswer
+                                ? Icons.check_circle
+                                : (option == selectedOption
+                                      ? Icons.cancel
+                                      : null),
+                            color: option == q.correctAnswer
+                                ? Colors.green
+                                : Colors.red,
+                            size: 20,
+                          ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    if (q.hindi != null && q.hindi!.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8.0),
-                        child: Text(
-                          "हिन्दी: ${q.hindi}",
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
+                  ),
+                ),
+              ),
+            );
+          }),
+          const SizedBox(height: 16),
+          if (selectedOption != null) ...[
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: theme.primaryColor.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: theme.primaryColor.withValues(alpha: 0.1),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.info_outline,
+                        size: 18,
+                        color: Colors.blue,
                       ),
-                    if (q.example != null && q.example!.isNotEmpty)
+                      const SizedBox(width: 8),
                       Text(
-                        "Example: “${q.example}”",
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontStyle: FontStyle.italic,
-                          color: Colors.black87,
+                        "Word Details",
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _nextQuestion,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: theme.primaryColor,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    ],
                   ),
-                ),
-                child: const Text(
-                  "Continue",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  const SizedBox(height: 8),
+                  if (q.hindi != null && q.hindi!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4.0),
+                      child: Text(
+                        "हिन्दी: ${q.hindi}",
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  if (q.example != null && q.example!.isNotEmpty)
+                    Text(
+                      "Example: “${q.example}”",
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontStyle: FontStyle.italic,
+                        color: Colors.black87,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _nextQuestion,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                backgroundColor: theme.primaryColor,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
-            ] else
-              OutlinedButton.icon(
-                onPressed: _skipQuestion,
-                icon: const Icon(Icons.skip_next),
-                label: const Text("Skip Question"),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+              child: const Text(
+                "Continue",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ] else
+            OutlinedButton.icon(
+              onPressed: _skipQuestion,
+              icon: const Icon(Icons.skip_next),
+              label: const Text("Skip Question"),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }

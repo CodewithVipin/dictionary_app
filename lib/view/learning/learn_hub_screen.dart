@@ -10,7 +10,7 @@ import 'root_words_screen.dart';
 import 'grammar_guide_screen.dart';
 import 'news_learn_screen.dart';
 import 'study_material_screen.dart';
-import 'visual_vocab_screen.dart';
+
 import 'mastery_dashboard_screen.dart';
 import 'pronunciation_coach_screen.dart';
 import 'offline_manager_screen.dart';
@@ -43,13 +43,7 @@ class LearnHubScreen extends StatelessWidget {
         color: Colors.indigo,
         screen: const MasteryDashboardScreen(),
       ),
-      LearnItem(
-        title: "Visual Vocab",
-        subtitle: "See & Learn",
-        icon: Icons.auto_awesome,
-        color: Colors.amber,
-        screen: const VisualVocabScreen(),
-      ),
+
       LearnItem(
         title: "Daily Quiz",
         subtitle: "Test your knowledge",

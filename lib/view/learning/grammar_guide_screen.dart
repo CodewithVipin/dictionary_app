@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/data/grammar_rules_data.dart';
+import 'grammar_detail_screen.dart';
 
 class GrammarGuideScreen extends StatelessWidget {
   const GrammarGuideScreen({super.key});
@@ -7,75 +8,74 @@ class GrammarGuideScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("100 Golden Rules of Grammar")),
-      body: ListView.builder(
+      appBar: AppBar(title: const Text("CBSE Class 9 & 10 Grammar")),
+      body: GridView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: grammarRules.length,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          childAspectRatio: 0.9,
+        ),
         itemBuilder: (context, index) {
-          final group = grammarRules[index];
-          return Card(
-            margin: const EdgeInsets.only(bottom: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: ExpansionTile(
-              leading: const CircleAvatar(
-                backgroundColor: Colors.indigo,
-                child: Icon(Icons.g_translate, color: Colors.white, size: 20),
+          final topic = grammarRules[index];
+          return GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => GrammarDetailScreen(topicData: topic),
+                ),
+              );
+            },
+            child: Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
-              title: Text(
-                group['title'],
-                style: const TextStyle(fontWeight: FontWeight.bold),
+              color: Colors.white,
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircleAvatar(
+                      radius: 24,
+                      backgroundColor: Colors.indigo.shade50,
+                      child: const Icon(
+                        Icons.menu_book_rounded,
+                        color: Colors.indigo,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      topic['title'],
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      topic['hindiTitle'],
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              subtitle: Text(
-                group['hindiTitle'],
-                style: const TextStyle(fontStyle: FontStyle.italic),
-              ),
-              children: (group['rules'] as List).map<Widget>((r) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Divider(),
-                      Text(
-                        r['rule'],
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        r['hindiRule'],
-                        style: TextStyle(
-                          color: Colors.grey.shade700,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          "Example: ${r['example']}",
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.indigo,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
             ),
           );
         },
