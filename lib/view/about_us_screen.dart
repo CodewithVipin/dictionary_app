@@ -13,7 +13,7 @@ class AboutUsScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              "Coffee Dictionary App",
+              "My Dictionary App",
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
@@ -40,7 +40,7 @@ class AboutUsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              "This app helps you explore the world of coffee with definitions, pronunciations, and more. Enjoy a beautiful green-themed experience while you learn.",
+              "This app helps you explore the English language with definitions, synonyms, antonyms, and correct pronunciations. Enjoy a beautiful green-themed experience while you learn.",
               style: TextStyle(fontSize: 16, height: 1.5),
             ),
           ],

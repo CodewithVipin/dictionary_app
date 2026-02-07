@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../core/storage/favorites_service.dart';
 import '../core/api/dictionary_api.dart';
 import '../model/dictionary_model.dart';
+import 'app_drawer.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -72,6 +73,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(
         title: const Text("Favorite Words ⭐"),
         actions: [

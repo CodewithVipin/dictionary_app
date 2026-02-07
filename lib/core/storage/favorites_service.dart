@@ -1,3 +1,5 @@
+// ignore_for_file: unintended_html_in_doc_comment
+
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -55,8 +57,11 @@ class FavoritesService {
     await prefs.remove(_key);
   }
 
-  /// Toggle favorite
-  static Future<void> toggleFavorite(String word) async {
+  /// Toggle favorite. If data is provided, it stores details for offline use.
+  static Future<void> toggleFavorite(
+    String word, {
+    Map<String, dynamic>? data,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     final List<String> rawList = prefs.getStringList(_key) ?? [];
     final target = word.toLowerCase();
@@ -66,8 +71,8 @@ class FavoritesService {
     for (int i = 0; i < rawList.length; i++) {
       String item = rawList[i];
       try {
-        final Map<String, dynamic> data = jsonDecode(item);
-        if (data['word'].toString().toLowerCase() == target) {
+        final Map<String, dynamic> existingData = jsonDecode(item);
+        if (existingData['word'].toString().toLowerCase() == target) {
           indexToRemove = i;
           break;
         }
@@ -86,6 +91,7 @@ class FavoritesService {
       final newItem = {
         'word': word,
         'date': DateTime.now().toIso8601String().split('T').first,
+        'cached_data': data, // Store full definition/audio for offline
       };
       rawList.add(jsonEncode(newItem));
     }

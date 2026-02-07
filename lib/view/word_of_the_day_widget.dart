@@ -5,11 +5,13 @@ import '../../core/service/word_of_the_day_service.dart';
 
 class WordOfTheDayDialog extends StatefulWidget {
   final String word;
+  final String hindi; // New parameter
   final VoidCallback onDismiss;
 
   const WordOfTheDayDialog({
     super.key,
     required this.word,
+    required this.hindi,
     required this.onDismiss,
   });
 
@@ -61,6 +63,17 @@ class _WordOfTheDayDialogState extends State<WordOfTheDayDialog> {
               color: Theme.of(context).primaryColor,
             ),
           ),
+          if (widget.hindi.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              widget.hindi,
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors.green.shade700,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ],
       ),
       content: loading

@@ -1,23 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:dictionary_app/view/favorites_screen.dart';
-
+import 'package:flutter/services.dart';
 import '../viewmodel/dictionary_viewmodel.dart';
 import '../core/audio/audio_service.dart';
 import '../core/api/suggestion_api.dart';
 import '../core/storage/favorites_service.dart';
-import '../core/service/word_of_the_day_service.dart'; // WOTD Service
-
+import '../core/service/word_of_the_day_service.dart';
+import '../core/storage/history_service.dart';
+import '../core/storage/mastery_service.dart';
 import 'app_drawer.dart';
-import 'word_of_the_day_widget.dart'; // WOTD Widget
 
 class DictionaryScreen extends StatefulWidget {
   final VoidCallback onToggleTheme;
   final bool isDark;
+  final String? initialWord;
 
   const DictionaryScreen({
     super.key,
     required this.onToggleTheme,
     required this.isDark,
+    this.initialWord,
   });
 
   @override
@@ -29,9 +30,10 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
   final DictionaryViewModel vm = DictionaryViewModel();
 
   bool isFavorite = false;
-
   List<String> suggestions = [];
   bool loadingSuggestions = false;
+  List<String> recentSearches = [];
+  Map<String, dynamic>? wotd;
 
   @override
   void initState() {
@@ -39,25 +41,21 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
     controller.addListener(() {
       if (mounted) setState(() {});
     });
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkWotd();
-    });
+    _loadInitialData();
+    if (widget.initialWord != null) {
+      controller.text = widget.initialWord!;
+      Future.microtask(() => _onSearch(widget.initialWord!));
+    }
   }
 
-  Future<void> _checkWotd() async {
-    // Only check if we should show
-    if (await WordOfTheDayService.shouldShow()) {
-      // Get the word (this might fetch from API if new day)
-      final wotd = await WordOfTheDayService.getWordOfTheDay();
-
-      if (wotd != null && mounted) {
-        showDialog(
-          context: context,
-          builder: (context) =>
-              WordOfTheDayDialog(word: wotd['word'], onDismiss: () {}),
-        );
-      }
+  Future<void> _loadInitialData() async {
+    final h = await HistoryService.getHistory();
+    final w = await WordOfTheDayService.getWordOfTheDay();
+    if (mounted) {
+      setState(() {
+        recentSearches = h;
+        wotd = w;
+      });
     }
   }
 
@@ -67,10 +65,8 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
     super.dispose();
   }
 
-  // 🔍 live typing handler
   Future<void> onTextChanged(String value) async {
     final query = value.trim();
-
     if (query.isEmpty) {
       if (mounted) {
         setState(() {
@@ -81,20 +77,36 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
       return;
     }
 
-    if (mounted) {
-      setState(() {
-        loadingSuggestions = true;
-      });
-    }
-
+    if (mounted) setState(() => loadingSuggestions = true);
     final result = await SuggestionApi.getSuggestions(query);
-
     if (!mounted) return;
-
     setState(() {
       suggestions = result;
       loadingSuggestions = false;
     });
+  }
+
+  void _onSearch(String word) async {
+    FocusScope.of(context).unfocus();
+    controller.text = word;
+    setState(() {
+      suggestions.clear();
+    });
+
+    await vm.search(word);
+
+    if (vm.dictionary != null) {
+      await HistoryService.addSearch(word);
+      await MasteryService.recordInteraction(word);
+      final h = await HistoryService.getHistory();
+      final fav = await FavoritesService.isFavorite(word);
+      if (mounted) {
+        setState(() {
+          recentSearches = h;
+          isFavorite = fav;
+        });
+      }
+    }
   }
 
   @override
@@ -103,20 +115,11 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
       drawer: const AppDrawer(),
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        title: const Text("Coffee Dictionary"),
+        title: const Text("My Dictionary"),
         actions: [
           IconButton(
             icon: Icon(widget.isDark ? Icons.light_mode : Icons.dark_mode),
             onPressed: widget.onToggleTheme,
-          ),
-          IconButton(
-            icon: const Icon(Icons.star),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const FavoritesScreen()),
-              );
-            },
           ),
         ],
       ),
@@ -125,14 +128,13 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
         child: Column(
           children: [
             _buildSearchBar(context),
-
             if (loadingSuggestions)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 6),
                 child: LinearProgressIndicator(),
               ),
 
-            // 🔽 suggestions (height-limited, safe)
+            // Suggestions
             if (suggestions.isNotEmpty)
               Container(
                 margin: const EdgeInsets.only(top: 8),
@@ -142,35 +144,10 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
                     keyboardDismissBehavior:
                         ScrollViewKeyboardDismissBehavior.onDrag,
                     itemCount: suggestions.length,
-                    itemBuilder: (context, index) {
-                      final word = suggestions[index];
-
-                      return ListTile(
-                        title: Text(word),
-                        onTap: () async {
-                          // 1️⃣ update UI immediately
-                          controller.text = word;
-                          FocusScope.of(context).unfocus();
-                          if (mounted) {
-                            setState(() {
-                              suggestions.clear();
-                            });
-                          }
-
-                          // 2️⃣ fetch meaning
-                          await vm.search(word);
-                          final fav = await FavoritesService.isFavorite(word);
-
-                          if (!mounted) return;
-
-                          // 3️⃣ update UI + hide keyboard
-
-                          setState(() {
-                            isFavorite = fav;
-                          });
-                        },
-                      );
-                    },
+                    itemBuilder: (context, index) => ListTile(
+                      title: Text(suggestions[index]),
+                      onTap: () => _onSearch(suggestions[index]),
+                    ),
                   ),
                 ),
               ),
@@ -188,14 +165,119 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
                 ),
               ),
 
-            if (vm.dictionary != null) Expanded(child: _buildResult(context)),
+            // Content
+            if (vm.dictionary != null)
+              Expanded(child: _buildResult(context))
+            else if (!vm.isLoading)
+              Expanded(child: _buildHomeContent()),
           ],
         ),
       ),
     );
   }
 
-  // 🔎 SEARCH BAR
+  Widget _buildHomeContent() {
+    return ListView(
+      children: [
+        if (wotd != null) ...[_buildWotdCard(), const SizedBox(height: 24)],
+        if (recentSearches.isNotEmpty) ...[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                "Recent Searches",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              TextButton(
+                onPressed: () async {
+                  await HistoryService.clearHistory();
+                  setState(() => recentSearches = []);
+                },
+                child: const Text("Clear"),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ...recentSearches
+              .take(5)
+              .map(
+                (word) => ListTile(
+                  leading: const Icon(
+                    Icons.history,
+                    size: 20,
+                    color: Colors.grey,
+                  ),
+                  title: Text(word),
+                  contentPadding: EdgeInsets.zero,
+                  onTap: () => _onSearch(word),
+                ),
+              ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildWotdCard() {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: LinearGradient(
+            colors: [Colors.green.shade700, Colors.green.shade500],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "WORD OF THE DAY",
+              style: TextStyle(
+                color: Colors.white70,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              wotd!['word'],
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 32,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              wotd!['hindi'] ?? '',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => _onSearch(wotd!['word']),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.green.shade800,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text("View Details"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildSearchBar(BuildContext context) {
     return Material(
       elevation: 4,
@@ -211,11 +293,11 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
                   icon: const Icon(Icons.close),
                   onPressed: () {
                     controller.clear();
-                    FocusScope.of(context).requestFocus(FocusNode());
+                    FocusScope.of(context).unfocus();
                     setState(() {
                       suggestions.clear();
-                      // vm.dictionary = null;
                       vm.error = null;
+                      // Don't clear result, user might want to see history
                     });
                   },
                 )
@@ -226,10 +308,8 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
           ),
           filled: true,
         ),
-        onSubmitted: (_) {
-          // ❌ do NOT search on submit
-          // just hide keyboard
-          FocusScope.of(context).unfocus();
+        onSubmitted: (val) {
+          if (val.trim().isNotEmpty) _onSearch(val.trim());
         },
       ),
     );
@@ -251,9 +331,24 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
             child: Row(
               children: [
                 Expanded(
-                  child: Text(
-                    data.word,
-                    style: Theme.of(context).textTheme.titleLarge,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        data.word,
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      if (vm.transliteration != null &&
+                          vm.transliteration!.isNotEmpty)
+                        Text(
+                          "(${vm.transliteration})",
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.grey.shade600,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
                 IconButton(
@@ -262,7 +357,10 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
                     color: isFavorite ? Colors.amber : null,
                   ),
                   onPressed: () async {
-                    await FavoritesService.toggleFavorite(data.word);
+                    await FavoritesService.toggleFavorite(
+                      data.word,
+                      data: data.toJson(),
+                    );
                     if (!mounted) return;
                     setState(() => isFavorite = !isFavorite);
                   },
@@ -350,13 +448,36 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
                       vm.hindiMeanings[index]!.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        "हिंदी अर्थ: ${vm.hindiMeanings[index]}",
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontStyle: FontStyle.italic,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              "हिंदी अर्थ: ${vm.hindiMeanings[index]}",
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontStyle: FontStyle.italic,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.copy,
+                              size: 18,
+                              color: Colors.grey,
+                            ),
+                            onPressed: () {
+                              final text =
+                                  "Word: ${data.word}\nDefinition: ${vm.hindiMeanings[index]}";
+                              Clipboard.setData(ClipboardData(text: text));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("Hindi meaning copied!"),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                     ),
                 ],
@@ -428,7 +549,7 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
                               label: Text(s),
                               backgroundColor: Theme.of(
                                 context,
-                              ).primaryColor.withOpacity(0.1),
+                              ).primaryColor.withValues(alpha: 0.3),
                               labelStyle: TextStyle(
                                 color: Theme.of(context).primaryColor,
                               ),

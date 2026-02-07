@@ -57,9 +57,20 @@ class DictionaryModel {
       word: json['word'] ?? '',
       phonetics: json['phonetics'] ?? [],
       meanings: meanings,
-      synonyms: syns.take(5).toList(), // Limit to 5
-      antonyms: ants.take(5).toList(), // Limit to 5
-      examples: exps.take(3).toList(), // Limit to 3
+      synonyms: syns.take(10).toList(), // Limit to 5
+      antonyms: ants.take(10).toList(), // Limit to 5
+      examples: exps.take(10).toList(), // Limit to 3
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'word': word,
+      'phonetics': phonetics,
+      'meanings': meanings,
+      'synonyms': synonyms,
+      'antonyms': antonyms,
+      'examples': examples,
+    };
   }
 }

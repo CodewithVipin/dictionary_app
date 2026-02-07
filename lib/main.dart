@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'view/dictionary_screen.dart';
+import 'view/learning/learn_hub_screen.dart';
+import 'view/favorites_screen.dart';
+import 'view/wotd_history_screen.dart';
+import 'view/splash_screen.dart';
 
 void main() {
   runApp(const DictionaryApp());
@@ -25,9 +29,66 @@ class _DictionaryAppState extends State<DictionaryApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Coffee Dictionary',
+      title: 'My Dictionary',
       theme: isDark ? greenDarkTheme : greenLightTheme,
-      home: DictionaryScreen(onToggleTheme: toggleTheme, isDark: isDark),
+      home: SplashScreen(onToggleTheme: toggleTheme, isDark: isDark),
+    );
+  }
+}
+
+class MainNavigationScreen extends StatefulWidget {
+  final VoidCallback onToggleTheme;
+  final bool isDark;
+
+  const MainNavigationScreen({
+    super.key,
+    required this.onToggleTheme,
+    required this.isDark,
+  });
+
+  @override
+  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
+}
+
+class _MainNavigationScreenState extends State<MainNavigationScreen> {
+  int _selectedIndex = 0;
+
+  late final List<Widget> _screens;
+
+  @override
+  void initState() {
+    super.initState();
+    _screens = [
+      DictionaryScreen(
+        onToggleTheme: widget.onToggleTheme,
+        isDark: widget.isDark,
+      ),
+      const LearnHubScreen(),
+      const FavoritesScreen(),
+      const WotdHistoryScreen(),
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: IndexedStack(index: _selectedIndex, children: _screens),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: (index) {
+          setState(() => _selectedIndex = index);
+        },
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.search), label: 'Search'),
+          NavigationDestination(icon: Icon(Icons.psychology), label: 'Learn'),
+          NavigationDestination(
+            icon: Icon(Icons.star_border),
+            selectedIcon: Icon(Icons.star),
+            label: 'Favorites',
+          ),
+          NavigationDestination(icon: Icon(Icons.history), label: 'History'),
+        ],
+      ),
     );
   }
 }

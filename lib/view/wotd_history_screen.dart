@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/api/dictionary_api.dart';
 import '../../core/service/word_of_the_day_service.dart';
 import '../../model/dictionary_model.dart';
+import 'app_drawer.dart';
 
 class WotdHistoryScreen extends StatefulWidget {
   const WotdHistoryScreen({super.key});
@@ -50,6 +51,7 @@ class _WotdHistoryScreenState extends State<WotdHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: const AppDrawer(),
       appBar: AppBar(title: const Text("Word of the Day History")),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: WordOfTheDayService.getHistory(),
@@ -73,6 +75,7 @@ class _WotdHistoryScreenState extends State<WotdHistoryScreen> {
               final item = history[index];
               final word = item['word'];
               final date = item['date'];
+              final hindi = item['hindi'] ?? '';
               final isExpanded = expandedIndex == index;
 
               return Column(
@@ -89,9 +92,26 @@ class _WotdHistoryScreenState extends State<WotdHistoryScreen> {
                           fontSize: 18,
                         ),
                       ),
-                      subtitle: Text(
-                        date,
-                        style: const TextStyle(color: Colors.grey),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (hindi.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4, bottom: 2),
+                              child: Text(
+                                hindi,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.green.shade700,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          Text(
+                            date,
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                        ],
                       ),
                       trailing: Icon(
                         isExpanded
@@ -109,7 +129,9 @@ class _WotdHistoryScreenState extends State<WotdHistoryScreen> {
                       ),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).cardColor.withOpacity(0.95),
+                        color: Theme.of(
+                          context,
+                        ).cardColor.withValues(alpha: 0.695),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: loadingMeaning

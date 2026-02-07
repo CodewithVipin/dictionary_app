@@ -1,46 +1,13 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import '../data/wotd_data.dart';
 import '../api/dictionary_api.dart';
 
 class WordOfTheDayService {
   static const String _currentWotdKey = 'current_wotd';
   static const String _historyKey = 'wotd_history';
-
-  // Fallback/Seed list of words
-  static final List<String> _wordList = [
-    "Serendipity",
-    "Ephemeral",
-    "Luminous",
-    "Solitude",
-    "Aurora",
-    "Melancholy",
-    "Euphoria",
-    "Resilience",
-    "Ineffable",
-    "Ethereal",
-    "Petrichor",
-    "Sonorous",
-    "Vellichor",
-    "Defenestration",
-    "Sonder",
-    "Bungalow",
-    "Incandescent",
-    "Supine",
-    "Epoch",
-    "Mellifluous",
-    "Labyrinth",
-    "Panacea",
-    "Surreal",
-    "Obscure",
-    "Vestige",
-    "Zenith",
-    "Nadir",
-    "Quintessential",
-    "Idyllic",
-    "Halcyon",
-  ];
+  static const String _lastSeenDateKey = 'last_seen_wotd_date';
 
   /// Get today's word. If not set or date changed, pick new one.
   static Future<Map<String, dynamic>?> getWordOfTheDay() async {
@@ -64,27 +31,66 @@ class WordOfTheDayService {
     String date,
   ) async {
     final random = Random();
-    String word = _wordList[random.nextInt(_wordList.length)];
 
-    // Try to get definition to ensure it's valid
-    // Note: In a real app we might want to pre-fetch these or store them locally to avoid API calls on startup failure
-    // For now we just pick a word and hope it has a definition, or we could fetch it here.
-    // Let's store just the word and date, and let the UI fetch the details.
-    // BUT user wants it to appear on opening.
+    // 1. Get history to avoid repeats
+    final List<String> historyJson = prefs.getStringList(_historyKey) ?? [];
+    final Set<String> seenWords = historyJson.map((e) {
+      try {
+        final map = jsonDecode(e);
+        return (map['word'] as String).toLowerCase();
+      } catch (_) {
+        return '';
+      }
+    }).toSet();
 
-    // Let's fetch it to be sure it exists.
-    final data = await DictionaryApi.getWord(word);
+    // 2. Filter master list for unseen words
+    final availableWords = wotdMasterList.where((element) {
+      return !seenWords.contains(element['word']!.toLowerCase());
+    }).toList();
 
-    if (data != null) {
-      final newWotd = {'word': word, 'date': date};
+    // 3. Fallback if user has seen EVERYTHING (after 5+ years!)
+    final List<Map<String, String>> candidates = availableWords.isNotEmpty
+        ? availableWords
+        : wotdMasterList;
 
-      await prefs.setString(_currentWotdKey, jsonEncode(newWotd));
-      await _addToHistory(prefs, newWotd);
-      return newWotd;
-    } else {
-      // Retry logic or fallback could go here
-      return null;
+    // 4. Pick random word
+    final selection = candidates[random.nextInt(candidates.length)];
+    final String word = selection['word']!;
+    final String hindi = selection['hindi']!;
+
+    // 5. Fetch API details (optional but good for synonyms/examples)
+    // We proceed even if API fails, using our local data backup
+    final apiData = await DictionaryApi.getWord(word);
+
+    // Extract audio if available for offline games like Spelling Bee
+    String? audio;
+    if (apiData != null && apiData['phonetics'] is List) {
+      for (var p in apiData['phonetics']) {
+        if (p['audio'] != null && p['audio'].toString().isNotEmpty) {
+          audio = p['audio'].toString();
+          break;
+        }
+      }
     }
+
+    // Construct the WOTD object
+    // We merge API data if available, but primarily rely on our list for the word itself
+    final newWotd = {
+      'word': word,
+      'hindi': hindi,
+      'date': date,
+      'audio': audio, // Save for offline games
+      'def': apiData != null
+          ? apiData['meanings']
+          : [], // Fallback if API fails
+      // Store minimal data needed for history/display
+    };
+
+    // 6. Save
+    await prefs.setString(_currentWotdKey, jsonEncode(newWotd));
+    await _addToHistory(prefs, newWotd);
+
+    return newWotd;
   }
 
   static Future<void> _addToHistory(
@@ -93,19 +99,14 @@ class WordOfTheDayService {
   ) async {
     final List<String> history = prefs.getStringList(_historyKey) ?? [];
 
-    // Check if already in history (idempotency)
-    // We store as list of JSON strings
-    // If list is long, maybe trim it?
+    // Add to top
+    history.insert(0, jsonEncode(wotd));
 
-    history.insert(0, jsonEncode(wotd)); // Add to top
-    if (history.length > 50) {
-      history.removeLast();
-    }
+    // We don't limit history to 50 anymore because we need it to track "seen" words
+    // But maybe we limit it to 2000? For now, unlimited or matching list size is fine.
 
     await prefs.setStringList(_historyKey, history);
   }
-
-  static const String _lastSeenDateKey = 'last_seen_wotd_date';
 
   /// Check if we should show the WOTD dialog (i.e. not shown today yet)
   static Future<bool> shouldShow() async {

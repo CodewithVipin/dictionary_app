@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'about_us_screen.dart';
 import 'disclaimer_screen.dart';
+import 'privacy_policy_screen.dart';
 import 'favorites_screen.dart';
 import 'wotd_history_screen.dart';
 
@@ -10,21 +11,26 @@ class AppDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Drawer(
-      child: Column(
+      child: ListView(
+        padding: EdgeInsets.zero,
         children: [
           UserAccountsDrawerHeader(
             decoration: BoxDecoration(color: theme.primaryColor),
             accountName: const Text(
-              "Coffee Dictionary",
+              "My Dictionary",
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            accountEmail: const Text("Learn about coffee"),
-            currentAccountPicture: CircleAvatar(
-              backgroundColor: isDark ? Colors.white24 : Colors.white,
-              child: Icon(Icons.coffee, size: 36, color: theme.primaryColor),
+            accountEmail: const Text("Learn new words every day"),
+            currentAccountPicture: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: ClipOval(
+                child: Image.asset('assets/images/logo.png', fit: BoxFit.cover),
+              ),
             ),
           ),
           ListTile(
@@ -45,7 +51,30 @@ class AppDrawer extends StatelessWidget {
               );
             },
           ),
+          ListTile(
+            leading: const Icon(Icons.history),
+            title: const Text("Word of the Day History"),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const WotdHistoryScreen()),
+              );
+            },
+          ),
           const Divider(),
+          const Padding(
+            padding: EdgeInsets.only(left: 16.0, top: 12.0, bottom: 8.0),
+            child: Text(
+              "INFO & LEGAL",
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+                color: Colors.grey,
+              ),
+            ),
+          ),
           ListTile(
             leading: const Icon(Icons.info),
             title: const Text("About Us"),
@@ -58,13 +87,13 @@ class AppDrawer extends StatelessWidget {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.history),
-            title: const Text("Word of the Day History"),
+            leading: const Icon(Icons.privacy_tip),
+            title: const Text("Privacy Policy"),
             onTap: () {
               Navigator.pop(context);
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const WotdHistoryScreen()),
+                MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
               );
             },
           ),
