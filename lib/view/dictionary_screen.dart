@@ -5,6 +5,10 @@ import '../viewmodel/dictionary_viewmodel.dart';
 import '../core/audio/audio_service.dart';
 import '../core/api/suggestion_api.dart';
 import '../core/storage/favorites_service.dart';
+import '../core/service/word_of_the_day_service.dart'; // WOTD Service
+
+import 'app_drawer.dart';
+import 'word_of_the_day_widget.dart'; // WOTD Widget
 
 class DictionaryScreen extends StatefulWidget {
   final VoidCallback onToggleTheme;
@@ -35,6 +39,26 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
     controller.addListener(() {
       if (mounted) setState(() {});
     });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkWotd();
+    });
+  }
+
+  Future<void> _checkWotd() async {
+    // Only check if we should show
+    if (await WordOfTheDayService.shouldShow()) {
+      // Get the word (this might fetch from API if new day)
+      final wotd = await WordOfTheDayService.getWordOfTheDay();
+
+      if (wotd != null && mounted) {
+        showDialog(
+          context: context,
+          builder: (context) =>
+              WordOfTheDayDialog(word: wotd['word'], onDismiss: () {}),
+        );
+      }
+    }
   }
 
   @override
@@ -76,6 +100,7 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: const AppDrawer(),
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: const Text("Coffee Dictionary"),
@@ -257,6 +282,8 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
 
         const SizedBox(height: 12),
 
+        const SizedBox(height: 12),
+
         // 🔹 ALL PARTS OF SPEECH
         ...data.meanings.asMap().entries.map<Widget>((entry) {
           final index = entry.key;
@@ -283,26 +310,29 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
                   // 🏷 PART OF SPEECH
                   Text(
                     meaning['partOfSpeech'] ?? '',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
+                      color: Theme.of(context).primaryColor,
                     ),
                   ),
                   const SizedBox(height: 8),
 
                   // 📘 ENGLISH DEFINITIONS (LIMITED)
-                  ...definitions.take(2).map<Widget>((def) {
+                  ...definitions.take(3).map<Widget>((def) {
                     if (def is Map && def['definition'] != null) {
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 6),
-                        child: Text("• ${def['definition']}"),
+                        child: Text(
+                          "• ${def['definition']}",
+                          style: const TextStyle(fontSize: 16),
+                        ),
                       );
                     }
                     return const SizedBox();
                   }),
 
                   // 🇮🇳 HINDI MEANING (ONLY ON FIRST MEANING)
-                  // 🇮🇳 Hindi meaning per section
                   if (vm.hindiLoadingIndexes.contains(index))
                     const Padding(
                       padding: EdgeInsets.only(top: 6),
@@ -319,13 +349,13 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
                       vm.hindiMeanings[index] != null &&
                       vm.hindiMeanings[index]!.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.only(top: 6),
+                      padding: const EdgeInsets.only(top: 8),
                       child: Text(
                         "हिंदी अर्थ: ${vm.hindiMeanings[index]}",
                         style: const TextStyle(
-                          fontSize: 15,
+                          fontSize: 16,
                           fontStyle: FontStyle.italic,
-                          height: 1.4,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
@@ -334,6 +364,108 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
             ),
           );
         }),
+
+        // 🔸 EXAMPLES
+        if (data.examples.isNotEmpty)
+          Card(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Examples",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).primaryColor,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ...data.examples.map(
+                    (e) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text(
+                        "“$e”",
+                        style: const TextStyle(fontStyle: FontStyle.italic),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+        // 🔹 SYNONYMS & ANTONYMS
+        if (data.synonyms.isNotEmpty || data.antonyms.isNotEmpty)
+          Card(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (data.synonyms.isNotEmpty) ...[
+                    Text(
+                      "Synonyms",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 8,
+                      children: data.synonyms
+                          .map(
+                            (s) => Chip(
+                              label: Text(s),
+                              backgroundColor: Theme.of(
+                                context,
+                              ).primaryColor.withOpacity(0.1),
+                              labelStyle: TextStyle(
+                                color: Theme.of(context).primaryColor,
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  if (data.antonyms.isNotEmpty) ...[
+                    Text(
+                      "Antonyms",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red.shade700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 8,
+                      children: data.antonyms
+                          .map(
+                            (a) => Chip(
+                              label: Text(a),
+                              backgroundColor: Colors.red.shade50,
+                              labelStyle: TextStyle(color: Colors.red.shade700),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
       ],
     );
   }

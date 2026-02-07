@@ -82,7 +82,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           ),
         ],
       ),
-      body: FutureBuilder<List<String>>(
+      body: FutureBuilder<List<Map<String, dynamic>>>(
         future: FavoritesService.getFavorites(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
@@ -99,7 +99,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             padding: const EdgeInsets.all(16),
             itemCount: favorites.length,
             itemBuilder: (context, index) {
-              final word = favorites[index];
+              final item = favorites[index];
+              final word = item['word'] as String;
+              final date = item['date'] as String;
               final isExpanded = expandedIndex == index;
 
               return Column(
@@ -109,12 +111,26 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: ListTile(
-                      title: Text(
-                        word,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      title: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            word,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            date,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(
+                                context,
+                              ).textTheme.bodyMedium?.color?.withOpacity(0.6),
+                            ),
+                          ),
+                        ],
                       ),
                       trailing: Icon(
                         isExpanded
